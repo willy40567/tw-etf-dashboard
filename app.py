@@ -19,6 +19,7 @@ from analysis import (
     summary_stats,
 )
 from database import get_connection
+from fetch_data import DEFAULT_ETFS, save_dividends, save_prices
 
 st.set_page_config(page_title="台股 ETF 比較儀表板", page_icon="📈", layout="wide")
 
@@ -37,7 +38,17 @@ def available_etfs() -> list[str]:
 etf_list = available_etfs()
 
 if not etf_list:
-    st.warning("資料庫是空的。請先在終端機執行 `python fetch_data.py` 抓取資料。")
+    st.warning("資料庫是空的（雲端環境第一次啟動時很正常）。")
+    st.caption("可以直接在這裡抓預設清單，或在終端機執行 `python fetch_data.py`。")
+    if st.button(f"抓取預設 ETF（{'、'.join(DEFAULT_ETFS)}）", type="primary"):
+        progress = st.empty()
+        for stock_id in DEFAULT_ETFS:
+            progress.write(f"抓取 {stock_id} …")
+            save_prices(stock_id)
+            save_dividends(stock_id)
+        progress.write("完成！")
+        available_etfs.clear()  # 清掉 cache，讓下面重新讀到資料
+        st.rerun()
     st.stop()
 
 
