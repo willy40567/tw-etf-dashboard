@@ -6,6 +6,9 @@
 
 > 線上 Demo：（部署到 Streamlit Cloud 後把連結貼在這裡）
 
+<!-- 部署完成後，把儀表板截圖存成 docs/screenshot.png，取消下一行註解即可顯示 -->
+<!-- ![儀表板截圖](docs/screenshot.png) -->
+
 ## 功能
 
 - 多檔 ETF 同圖比較（價格標準化為期初 = 100）
@@ -55,10 +58,9 @@ export FINMIND_TOKEN=你的token        # Windows 用 set
 1. 把這個專案推上 GitHub（`etf.db` 已被 `.gitignore` 排除，不進版控）
 2. 到 https://share.streamlit.io 用 GitHub 帳號登入
 3. New app → 選這個 repo → Main file 填 `app.py` → Deploy
-4. 雲端環境第一次沒有 `etf.db`，有兩種作法：
-   - 快速展示：本機跑完 `python fetch_data.py` 後，用 `git add -f etf.db`
-     強制提交一份資料快照
-   - 較乾淨：另接排程或在啟動時呼叫 `fetch_data.py` 重新抓取
+4. 雲端環境第一次沒有 `etf.db`，App 會顯示一顆「抓取預設 ETF」按鈕，
+   點下去就會即時抓資料並建好資料庫，不需要終端機。
+   （或本機跑完 `python fetch_data.py` 後，用 `git add -f etf.db` 提交一份快照。）
 
 ## 免責聲明
 
