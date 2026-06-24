@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# SQLite 資料庫（由 fetch_data.py 產生，不進版控）
+*.db
+
+# 環境變數 / 密鑰
+.env
+
+# 編輯器 / 系統
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
