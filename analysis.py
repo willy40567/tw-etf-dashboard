@@ -12,10 +12,14 @@ from database import get_connection
 
 
 def load_prices(stock_ids: list[str], start: str, end: str) -> pd.DataFrame:
-    """讀取指定 ETF 在日期區間內的收盤價。"""
+    """讀取指定 ETF 在日期區間內的還原收盤價（後復權，含息）。
+
+    用 adj_close 計算才不會被分割／配息扭曲；舊資料庫若還沒有
+    還原值，COALESCE 會退回原始 close 以免查不到資料。
+    """
     placeholders = ",".join("?" * len(stock_ids))
     sql = f"""
-        SELECT stock_id, date, close
+        SELECT stock_id, date, COALESCE(adj_close, close) AS close
         FROM prices
         WHERE stock_id IN ({placeholders})
           AND date BETWEEN ? AND ?
@@ -30,9 +34,9 @@ def load_prices(stock_ids: list[str], start: str, end: str) -> pd.DataFrame:
 
 def annual_returns(stock_ids: list[str], start: str, end: str) -> pd.DataFrame:
     """
-    計算各 ETF 的「年度報酬率」（只看價格，不含股利）。
+    計算各 ETF 的「年度報酬率」（用還原價，含息且已調整分割）。
 
-    作法：每年取第一個與最後一個交易日的收盤價，
+    作法：每年取第一個與最後一個交易日的還原收盤價，
     用子查詢 + GROUP BY 找出年初／年末價格再相除。
     日期區間與價格圖一致，避免兩張圖看的年份對不上。
     """
@@ -52,9 +56,12 @@ def annual_returns(stock_ids: list[str], start: str, end: str) -> pd.DataFrame:
         SELECT
             y.stock_id,
             y.year,
-            p1.close AS first_close,
-            p2.close AS last_close,
-            ROUND((p2.close - p1.close) * 100.0 / p1.close, 2) AS return_pct
+            COALESCE(p1.adj_close, p1.close) AS first_close,
+            COALESCE(p2.adj_close, p2.close) AS last_close,
+            ROUND(
+                (COALESCE(p2.adj_close, p2.close) - COALESCE(p1.adj_close, p1.close))
+                * 100.0 / COALESCE(p1.adj_close, p1.close), 2
+            ) AS return_pct
         FROM yearly y
         JOIN prices p1 ON p1.stock_id = y.stock_id AND p1.date = y.first_day
         JOIN prices p2 ON p2.stock_id = y.stock_id AND p2.date = y.last_day
