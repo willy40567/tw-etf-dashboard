@@ -19,7 +19,7 @@ from analysis import (
     summary_stats,
 )
 from database import get_connection
-from fetch_data import DEFAULT_ETFS, save_dividends, save_prices
+from fetch_data import DEFAULT_ETFS, ingest
 
 st.set_page_config(page_title="台股 ETF 比較儀表板", page_icon="📈", layout="wide")
 
@@ -44,8 +44,7 @@ if not etf_list:
         progress = st.empty()
         for stock_id in DEFAULT_ETFS:
             progress.write(f"抓取 {stock_id} …")
-            save_prices(stock_id)
-            save_dividends(stock_id)
+            ingest(stock_id)
         progress.write("完成！")
         available_etfs.clear()  # 清掉 cache，讓下面重新讀到資料
         st.rerun()
@@ -69,7 +68,10 @@ if not selected:
 # ---------- 主畫面 ----------
 
 st.title("台股 ETF 比較儀表板")
-st.caption("價格走勢、年度報酬與配息紀錄，一頁看完。價格報酬未含股利再投入。")
+st.caption(
+    "價格走勢、年度報酬與配息紀錄，一頁看完。"
+    "報酬以還原股價（後復權）計算，已調整分割與配息，為總報酬基準。"
+)
 
 prices = load_prices(selected, str(start_date), str(end_date))
 
@@ -92,13 +94,13 @@ for col, (_, row) in zip(cols, stats.iterrows()):
 st.dataframe(stats, hide_index=True, use_container_width=True)
 
 # 2. 價格走勢（期初 = 100 標準化，方便不同價位的 ETF 同圖比較）
-st.subheader("價格走勢（期初 = 100）")
+st.subheader("還原價走勢（期初 = 100）")
 norm = normalize_prices(prices)
 chart_df = norm.pivot(index="date", columns="stock_id", values="index_value")
 st.line_chart(chart_df)
 
 # 3. 年度報酬率
-st.subheader("年度報酬率（%）")
+st.subheader("年度報酬率（%，含息還原）")
 yearly = annual_returns(selected, str(start_date), str(end_date))
 yearly_pivot = yearly.pivot(index="year", columns="stock_id", values="return_pct")
 st.bar_chart(yearly_pivot)
